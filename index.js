@@ -1,9 +1,12 @@
 const http = require("http");
 const PORT = 3000;
+const path = require("path");
+const { render } = require('./utils');
 
-const server = http.createServer((req, res) => {
-  res.writeHead(200, { "Content-Type": "text/html" });
-  res.end('<h1>Hello World</h1>');
+const server = http.createServer(async (req, res) => {
+  const filePath = path.join(__dirname, 'dist', req.url === '/' ? 'index.html' : req.url);
+  render(req, res, filePath);
+  console.log(filePath);
 });
 
 server.listen(PORT, () => {
