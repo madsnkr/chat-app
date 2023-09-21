@@ -1,12 +1,30 @@
 const http = require("http");
 const PORT = 3000;
 const path = require("path");
-const { render } = require('./utils');
+const { render, getBodyData } = require('./utils');
 
 const server = http.createServer(async (req, res) => {
-  const filePath = path.join(__dirname, 'dist', req.url === '/' ? 'index.html' : req.url);
-  render(req, res, filePath);
-  console.log(filePath);
+  if (req.method === 'POST' && req.url === '/room') {
+    try {
+      const body = await getBodyData(req);
+
+      if (!body.username || !body.room) return res
+        .writeHead(422, { 'Content-Type': 'application/json' })
+        .end(JSON.stringify({ message: "Cannot join chat room without a username or room id" }));
+
+      res.writeHead(303, { 'Location': '/room' });
+      res.end();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  if (req.method === 'GET') {
+    const filePath = path.join(__dirname, 'dist', req.url === '/' ? 'index.html' : req.url);
+
+    render(req, res, filePath);
+  }
+
 });
 
 server.listen(PORT, () => {
