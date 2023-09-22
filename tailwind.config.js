@@ -4,7 +4,11 @@ module.exports = {
     './dist/**/*.{html,js}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      height: {
+        "80v": "80vh"
+      }
+    },
   },
   plugins: [],
 };
