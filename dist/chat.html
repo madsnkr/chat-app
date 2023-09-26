@@ -12,33 +12,18 @@
       <h1 class="text-center text-6xl py-10 text-indigo-900 shadow-zinc-900 font-bold">Welcome to chat room!</h1> 
       <section class="bg-slate-200 w-11/12 h-80v max-w-6xl m-auto relative rounded-xl">
 
-        <div class="p-6 flex flex-col h-5/6 overflow-scroll">
+        <div id="message-container" class="p-6 flex flex-col h-5/6 overflow-scroll"></div>
 
-          <div class="p-6">
-            <div class="bg-slate-300 rounded max-w-xl p-2 float-left">
-              <span>
-                <p class="text-left">Hello! How are you today? I heard you really liked it so yeah</p> 
-              </span>
-            </div>
-          </div>
-
-          <div class="p-6">
-            <div class="bg-slate-300 rounded max-w-xl p-2 float-right">
-              <span>
-                <p class="text-right">I'm pretty good how bout you?</p>
-              </span>
-            </div> 
-          </div> 
-
-        </div>
-
-        <form method="post" action="/chat/:id" class="absolute left-0 bottom-0 w-full p-6">
+        <form id="form" action="" class="absolute left-0 bottom-0 w-full p-6">
           <div class='m-auto w-9/12 flex border-2 rounded-xl focus-within:border-sky-600'>
-            <textarea class="shadow-md w-full break-all outline-none resize-none rounded-xl h-auto p-2" rows="1" cols="50" name="message" placeholder="Message..."></textarea>
+            <textarea id="message" class="shadow-md w-full break-all outline-none resize-none rounded-xl h-auto p-2" rows="1" cols="50" name="message" placeholder="Message..."></textarea>
             <button class="shadow-md p-2 -ml-2 rounded-e-xl bg-indigo-300" type="submit">Send</button>
           </div>
         </form>
+
       </section>
     </main>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="index.js"></script>
   </body>
 </html>

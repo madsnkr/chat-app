@@ -1,31 +1,83 @@
 const http = require("http");
 const PORT = 3000;
-const path = require("path");
-const { render, getBodyData } = require('./utils');
+const { join, extname } = require("path");
+const { parseUrlEncoded } = require('./utils');
+const { Server } = require('socket.io');
+const Chat = require('./db/chat');
+const chatRooms = require('./db/data.json');
+const fs = require('fs');
+
+
+const mime = {
+  wasm: 'application/wasm',
+  json: 'application/json',
+  woff: 'application/font-woff',
+  ttf: 'application/font-ttf',
+  eot: 'application/vnd.ms-fontobject',
+  otf: 'application/font-otf',
+  js: "application/javascript",
+  pdf: 'application/pdf',
+  doc: 'application/msword',
+  html: "text/html",
+  css: "text/css",
+  png: "image/png",
+  jpg: "image/jpg",
+  gif: "image/gif",
+  ico: "image/x-icon",
+  svg: "image/svg+xml",
+  wav: 'audio/wav',
+  mp4: 'video/mp4',
+};
+
+const staticDir = __dirname + '/dist';
+
+const controller = {
+  '': async () => {
+    return { status: 200, stream: fs.createReadStream(staticDir + '/index.html') };
+  },
+  chat: async () => {
+    //TODO: Verify the params
+    return { status: 200, stream: fs.createReadStream(staticDir + '/chat.html') };
+  },
+  generic: async (data) => {
+    const { pathName } = data;
+    const exists = await fs.promises.stat(join(staticDir, pathName)).then(() => true, () => false);
+
+    return {
+      status: exists ? 200 : 404,
+      stream: exists ? fs.createReadStream(join(staticDir, pathName)) : fs.createReadStream(staticDir + '/404.html')
+    };
+  }
+};
 
 const server = http.createServer(async (req, res) => {
-  if (req.method === 'POST' && req.url === '/chat') {
-    try {
-      const body = await getBodyData(req);
+  //Parse url also remove leading and trailing slashes
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const pathName = url.pathname.replace(/^\/+|\/+$/g, '');
 
-      if (!body.username || !body.room) return res
-        .writeHead(422, { 'Content-Type': 'application/json' })
-        .end(JSON.stringify({ message: "Cannot join chat room without a username or room id" }));
+  //Get extension of file and set mimetype based on that
+  const extName = extname(pathName).substring(1).toLowerCase();
+  const mimeType = mime[extName] || 'text/html';
 
+  //Get the correct handler from the controller and call it
+  const handler = controller[pathName] === undefined ? controller['generic'] : controller[pathName];
+  const { status, stream } = await handler({ pathName });
 
-      res.writeHead(303, { 'Location': '/chat' });
-      res.end();
-    } catch (err) {
-      console.error(err);
-    }
-  }
+  //Send back the appropriate response
+  res.writeHead(status, { 'Content-Type': mimeType });
+  stream.pipe(res);
+});
 
-  if (req.method === 'GET') {
-    const filePath = path.join(__dirname, 'dist', req.url === '/' ? 'index.html' : req.url);
+const io = new Server(server);
 
-    render(req, res, filePath);
-  }
-
+io.on('connection', (socket) => {
+  console.log(`User: ${socket.id} connected`);
+  socket.on('chatMessage', (message) => {
+    io.emit('chatMessage', message);
+  });
+  socket.on('disconnect', () => {
+    console.log(`User ${socket.id} disconnected`);
+  });
 });
 
 server.listen(PORT, () => {

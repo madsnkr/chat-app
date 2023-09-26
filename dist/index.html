@@ -5,16 +5,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/x-icon" href="favicon.ico"/>
-    <link href="style.css" rel="stylesheet">
+    <link href="style.css" type="text/css" rel="stylesheet">
   </head>
   <body class='bg-zinc-100'>
     <main class='absolute top-2/4 -translate-y-1/2 left-1/2 -translate-x-1/2'>
       <h1 class='text-center text-6xl py-10 text-indigo-900 shadow-zinc-900 font-bold'>NodeJS Live Chat</h1> 
       <p class='text-center text-2xl py-4'>Please select a room to join below!</p>
       <div class='m-auto'>
-        <form method='post' action='/chat' id='form' class='h-52 flex flex-col justify-center items-center p-2 m-auto'>
+        <form method='GET' action='/chat' id='form' class='h-52 flex flex-col justify-center items-center p-2 m-auto'>
           <input id='username' class='border border-black flex p-2 my-3 w-3/4 rounded' type="text" name="username" placeholder="Username">
-          <input id='room' class='border border-black flex p-2 my-3 w-3/4 rounded' type="text" name="room" placeholder="Room">
+          <input id='roomId' class='border border-black flex p-2 my-3 w-3/4 rounded' type="text" name="roomId" placeholder="Room">
           <button class='border border-black p-3 rounded' type="submit">ENTER</button>
         </form> 
       </div>
