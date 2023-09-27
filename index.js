@@ -32,15 +32,40 @@ const mime = {
 const staticDir = __dirname + '/dist';
 
 const controller = {
-  '': async () => {
-    return { status: 200, contentType: 'text/html', stream: fs.createReadStream(staticDir + '/index.html') };
+  '': async (data) => {
+
+    return {
+      status: 200,
+      headers: { 'Content-Type': 'text/html' },
+      content: await fs.promises.readFile(staticDir + '/index.html')
+    };
   },
-  chat: async () => {
+  chat: async (data) => {
+    const { pathName, method, params } = data;
+    let status, headers, content;
+
+    //Make sure username and roomId has been passed
+    if (!params.username || !params.roomId) {
+      status = 302;
+      headers = { 'Location': '/' };
+    } else {
+      status = 200;
+      headers = { 'Content-Type': 'text/html' };
+      content = await fs.promises.readFile(staticDir + '/chat.html');
+    }
+
+    //user => {id, name, room}
+    //room => {id, name, users}
+
     //TODO: Verify the params
-    return { status: 200, contentType: 'text/html', stream: fs.createReadStream(staticDir + '/chat.html') };
+    return {
+      status,
+      headers,
+      content
+    };
   },
   generic: async (data) => {
-    const { pathName } = data;
+    const { pathName, method, params } = data;
     const exists = await fs.promises.stat(join(staticDir, pathName)).then(() => true, () => false);
 
     //Get extension of file and set mimetype based on that
@@ -48,8 +73,9 @@ const controller = {
 
     return {
       status: exists ? 200 : 404,
-      contentType: mime[extName] || 'text/html',
-      stream: exists ? fs.createReadStream(join(staticDir, pathName)) : fs.createReadStream(staticDir + '/404.html')
+      headers: { 'Content-Type': mime[extName] || 'text/html' },
+      content: exists ? await fs.promises.readFile(join(staticDir, pathName))
+        : await fs.promises.readFile(staticDir + '/404.html')
     };
   }
 };
@@ -59,14 +85,16 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const pathName = url.pathname.replace(/^\/+|\/+$/g, '');
 
-
   //Get the correct handler from the controller and call it
   const handler = controller[pathName] === undefined ? controller['generic'] : controller[pathName];
-  const { status, contentType, stream } = await handler({ pathName });
+  const { status, headers, content } = await handler({
+    pathName,
+    method: req.method,
+    params: Object.fromEntries(url.searchParams)
+  });
 
   //Send back the appropriate response
-  res.writeHead(status, { 'Content-Type': contentType });
-  stream.pipe(res);
+  res.writeHead(status, headers).end(content);
 });
 
 const io = new Server(server);

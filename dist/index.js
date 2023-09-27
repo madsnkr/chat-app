@@ -4,7 +4,6 @@ const socket = io();
 const form = document.getElementById('form');
 const messageInput = document.getElementById('message');
 const messageContainer = document.getElementById('message-container');
-
 form.addEventListener('submit', (e) => {
   e.preventDefault();
   if (messageInput.value) {
