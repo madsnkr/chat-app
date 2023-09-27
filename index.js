@@ -1,5 +1,5 @@
 const http = require("http");
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const { join, extname } = require("path");
 const { parseUrlEncoded } = require('./utils');
 const { Server } = require('socket.io');
@@ -33,18 +33,22 @@ const staticDir = __dirname + '/dist';
 
 const controller = {
   '': async () => {
-    return { status: 200, stream: fs.createReadStream(staticDir + '/index.html') };
+    return { status: 200, contentType: 'text/html', stream: fs.createReadStream(staticDir + '/index.html') };
   },
   chat: async () => {
     //TODO: Verify the params
-    return { status: 200, stream: fs.createReadStream(staticDir + '/chat.html') };
+    return { status: 200, contentType: 'text/html', stream: fs.createReadStream(staticDir + '/chat.html') };
   },
   generic: async (data) => {
     const { pathName } = data;
     const exists = await fs.promises.stat(join(staticDir, pathName)).then(() => true, () => false);
 
+    //Get extension of file and set mimetype based on that
+    const extName = extname(pathName).substring(1).toLowerCase();
+
     return {
       status: exists ? 200 : 404,
+      contentType: mime[extName] || 'text/html',
       stream: exists ? fs.createReadStream(join(staticDir, pathName)) : fs.createReadStream(staticDir + '/404.html')
     };
   }
@@ -55,16 +59,13 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const pathName = url.pathname.replace(/^\/+|\/+$/g, '');
 
-  //Get extension of file and set mimetype based on that
-  const extName = extname(pathName).substring(1).toLowerCase();
-  const mimeType = mime[extName] || 'text/html';
 
   //Get the correct handler from the controller and call it
   const handler = controller[pathName] === undefined ? controller['generic'] : controller[pathName];
-  const { status, stream } = await handler({ pathName });
+  const { status, contentType, stream } = await handler({ pathName });
 
   //Send back the appropriate response
-  res.writeHead(status, { 'Content-Type': mimeType });
+  res.writeHead(status, { 'Content-Type': contentType });
   stream.pipe(res);
 });
 
