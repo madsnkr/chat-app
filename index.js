@@ -1,12 +1,10 @@
 const http = require("http");
+const fs = require('fs');
 const PORT = process.env.PORT || 3000;
 const { join, extname } = require("path");
 const { parseUrlEncoded } = require('./utils');
 const { Server } = require('socket.io');
-const Chat = require('./db/chat');
-const chatRooms = require('./db/data.json');
-const fs = require('fs');
-
+const rooms = require('./db/rooms.json');
 
 const mime = {
   wasm: 'application/wasm',
@@ -33,7 +31,6 @@ const staticDir = __dirname + '/dist';
 
 const controller = {
   '': async (data) => {
-
     return {
       status: 200,
       headers: { 'Content-Type': 'text/html' },
@@ -42,26 +39,14 @@ const controller = {
   },
   chat: async (data) => {
     const { pathName, method, params } = data;
-    let status, headers, content;
 
     //Make sure username and roomId has been passed
-    if (!params.username || !params.roomId) {
-      status = 302;
-      headers = { 'Location': '/' };
-    } else {
-      status = 200;
-      headers = { 'Content-Type': 'text/html' };
-      content = await fs.promises.readFile(staticDir + '/chat.html');
-    }
+    if (!params.username || !params.roomId) return { status: 302, headers: { 'Location': '/' } };
 
-    //user => {id, name, room}
-    //room => {id, name, users}
-
-    //TODO: Verify the params
     return {
-      status,
-      headers,
-      content
+      status: 200,
+      headers: { 'Content-Type': 'text/html' },
+      content: await fs.promises.readFile(staticDir + '/chat.html')
     };
   },
   generic: async (data) => {
@@ -81,12 +66,18 @@ const controller = {
 };
 
 const server = http.createServer(async (req, res) => {
+  //Make sure the request method is GET
+  if (req.method !== 'GET') return res
+    .writeHead(405, { 'Content-Type': 'application/json' })
+    .end(JSON.stringify({ message: `This route does not support method: ${req.method}` }));
+
   //Parse url also remove leading and trailing slashes
   const url = new URL(req.url, `http://${req.headers.host}`);
   const pathName = url.pathname.replace(/^\/+|\/+$/g, '');
 
   //Get the correct handler from the controller and call it
   const handler = controller[pathName] === undefined ? controller['generic'] : controller[pathName];
+
   const { status, headers, content } = await handler({
     pathName,
     method: req.method,
@@ -100,12 +91,15 @@ const server = http.createServer(async (req, res) => {
 const io = new Server(server);
 
 io.on('connection', (socket) => {
-  console.log(`User: ${socket.id} connected`);
+  socket.on('join', ({ username, roomId }) => {
+    socket.join(roomId);
+    console.log(`${username} has joined room ${roomId}`);
+  });
   socket.on('chatMessage', (message) => {
     io.emit('chatMessage', message);
   });
   socket.on('disconnect', () => {
-    console.log(`User ${socket.id} disconnected`);
+    console.log('User disconnected');
   });
 });
 
