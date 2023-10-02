@@ -22,15 +22,29 @@ socket.on('roomMessage', (message) => {
 });
 
 socket.on('chatMessage', (message) => {
-  //Check wether to display message on right side or left side 
-  //based on if its your message or the other persons message
-  messageContainer.insertAdjacentHTML('beforeend', `
+  const { user, body, date } = message;
+
+  //If message is from current user then display it on the right else display on left
+  if (user === username) {
+    messageContainer.insertAdjacentHTML('beforeend', `
       <div class="p-6">
         <div class="bg-slate-300 rounded max-w-xl p-2 float-right">
           <span>
-            <p class="text-right">${message}</p>
+            <p class="text-right">${body}</p>
+            <p class="text-right text-xs text-indigo-900">${date}</p>
           </span>
         </div>
       </div>`);
+  } else {
+    messageContainer.insertAdjacentHTML('beforeend', `
+      <div class="p-6">
+        <div class="bg-slate-300 rounded max-w-xl p-2 float-left">
+          <span>
+            <p class="text-right">${body}</p>
+            <p class="text-right text-xs text-indigo-900">${date}</p>
+          </span>
+        </div>
+      </div>`);
+  }
 });
 

@@ -108,7 +108,13 @@ io.on('connection', (socket) => {
   });
   socket.on('chatMessage', (message) => {
     const user = Chat.getUser(socket.id);
-    io.to(user.room).emit('chatMessage', message);
+    const formattedMessage = { 
+      user: user.name, 
+      body: message, 
+      date: new Date().toLocaleTimeString() 
+    };
+
+    io.to(user.room).emit('chatMessage', formattedMessage);
   });
   socket.on('disconnect', () => {
     const user = Chat.leave(socket.id);
