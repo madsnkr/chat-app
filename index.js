@@ -2,9 +2,8 @@ const http = require("http");
 const fs = require('fs');
 const PORT = process.env.PORT || 3000;
 const { join, extname } = require("path");
-const { parseUrlEncoded } = require('./utils');
 const { Server } = require('socket.io');
-const rooms = require('./db/rooms.json');
+const Chat = require('./utils');
 
 const mime = {
   wasm: 'application/wasm',
@@ -40,9 +39,14 @@ const controller = {
   chat: async (data) => {
     const { pathName, method, params } = data;
 
-    //Make sure username and roomId has been passed
+    //Make sure the params are not empty
     if (!params.username || !params.roomId) return { status: 302, headers: { 'Location': '/' } };
 
+    //Make sure user doesn't already exist
+    const userExists = Chat.usernameTaken(params.username, params.roomId);
+    if (userExists) return { status: 302, headers: { 'Location': '/' } };
+
+    //Return chat view
     return {
       status: 200,
       headers: { 'Content-Type': 'text/html' },
@@ -51,16 +55,21 @@ const controller = {
   },
   generic: async (data) => {
     const { pathName, method, params } = data;
+
     const exists = await fs.promises.stat(join(staticDir, pathName)).then(() => true, () => false);
 
-    //Get extension of file and set mimetype based on that
+    if (!exists) return {
+      status: 404,
+      headers: { 'Content-Type': 'text/html' },
+      content: await fs.promises.readFile(staticDir + '/404.html')
+    };
+
     const extName = extname(pathName).substring(1).toLowerCase();
 
     return {
-      status: exists ? 200 : 404,
-      headers: { 'Content-Type': mime[extName] || 'text/html' },
-      content: exists ? await fs.promises.readFile(join(staticDir, pathName))
-        : await fs.promises.readFile(staticDir + '/404.html')
+      status: 200,
+      headers: { 'Content-Type': mime[extName] || 'application/octet-stream' },
+      content: await fs.promises.readFile(join(staticDir, pathName))
     };
   }
 };
@@ -92,14 +101,19 @@ const io = new Server(server);
 
 io.on('connection', (socket) => {
   socket.on('join', ({ username, roomId }) => {
-    socket.join(roomId);
-    console.log(`${username} has joined room ${roomId}`);
+    const user = Chat.join({ id: socket.id, name: username, room: roomId });
+    socket.join(user.room);
+
+    socket.broadcast.to(user.room).emit('roomMessage', `${user.name} has joined the chat!`);
   });
   socket.on('chatMessage', (message) => {
-    io.emit('chatMessage', message);
+    const user = Chat.getUser(socket.id);
+    io.to(user.room).emit('chatMessage', message);
   });
   socket.on('disconnect', () => {
-    console.log('User disconnected');
+    const user = Chat.leave(socket.id);
+
+    user && io.to(user.room).emit('roomMessage', `${user.name} has left the chat!`);
   });
 });
 
