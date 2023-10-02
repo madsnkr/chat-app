@@ -17,6 +17,10 @@ form.addEventListener('submit', (e) => {
 
 socket.emit('join', { username, roomId });
 
+socket.on('roomMessage', (message) => {
+  messageContainer.insertAdjacentHTML('beforeend', `<p class="text-center">${message}</p>`);
+});
+
 socket.on('chatMessage', (message) => {
   //Check wether to display message on right side or left side 
   //based on if its your message or the other persons message
