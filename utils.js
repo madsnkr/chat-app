@@ -1,18 +1,25 @@
-const { StringDecoder } = require('string_decoder');
+class Chat {
+  #users = [];
+  constructor() { }
 
-const parseUrlEncoded = async (req) => {
-  return new Promise((resolve, reject) => {
-    let buffer = '';
-    let decoder = new StringDecoder('utf8');
-    req.on('error', (err) => {
-      reject(err);
-    }).on('data', (chunk) => {
-      buffer += decoder.write(chunk);
-    }).on('end', () => {
-      buffer += decoder.end();
-      resolve(Object.fromEntries(new URLSearchParams(buffer)));
-    });
-  });
-};
+  join = user => {
+    this.#users.push(user);
+    return user;
+  };
 
-module.exports = { parseUrlEncoded };
+  usernameTaken = (username, roomId) => {
+    return this.#users.find(user => user.room === roomId && user.name === username);
+  };
+
+  getUser = id => this.#users.find(user => user.id === id);
+
+  leave = id => {
+    const allUsers = this.#users.filter(user => user.id !== id);
+    return this.#users.splice(0, this.#users.length, ...allUsers)[0];
+  };
+
+  getUsers = roomId => this.#users.filter(user => user.room === roomId);
+}
+
+
+module.exports = new Chat();
