@@ -15,6 +15,15 @@ form.addEventListener('submit', (e) => {
   }
 });
 
+let typingTimeout = 0;
+
+messageInput.addEventListener('input', () => {
+  typingTimeout && clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(() => socket.emit('typing', false), 1000);//Emit no longer typing after 1 seconds of not typing
+
+  socket.emit('typing', true);//Emit that we are typing
+});
+
 socket.emit('join', { username, roomId });
 
 socket.on('roomMessage', (message) => {
@@ -48,3 +57,4 @@ socket.on('chatMessage', (message) => {
   }
 });
 
+socket.on('typing', (message) => document.getElementById('typing').innerText = message);

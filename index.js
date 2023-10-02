@@ -106,21 +106,28 @@ io.on('connection', (socket) => {
 
     socket.broadcast.to(user.room).emit('roomMessage', `${user.name} has joined the chat!`);
   });
+
   socket.on('chatMessage', (message) => {
     const user = Chat.getUser(socket.id);
-    const formattedMessage = { 
-      user: user.name, 
-      body: message, 
-      date: new Date().toLocaleTimeString() 
+    const formattedMessage = {
+      user: user.name,
+      body: message,
+      date: new Date().toLocaleTimeString()
     };
 
     io.to(user.room).emit('chatMessage', formattedMessage);
+  });
+  socket.on('typing', (isTyping) => {
+    const user = Chat.getUser(socket.id);
+    socket.broadcast.to(user.room).emit('typing', isTyping ? `${user.name} is typing...` : '');
+
   });
   socket.on('disconnect', () => {
     const user = Chat.leave(socket.id);
 
     user && io.to(user.room).emit('roomMessage', `${user.name} has left the chat!`);
   });
+
 });
 
 server.listen(PORT, () => {
