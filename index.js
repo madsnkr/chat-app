@@ -1,78 +1,8 @@
 const http = require("http");
-const fs = require('fs');
 const PORT = process.env.PORT || 3000;
-const { join, extname } = require("path");
 const { Server } = require('socket.io');
-const Chat = require('./utils');
-
-const mime = {
-  wasm: 'application/wasm',
-  json: 'application/json',
-  woff: 'application/font-woff',
-  ttf: 'application/font-ttf',
-  eot: 'application/vnd.ms-fontobject',
-  otf: 'application/font-otf',
-  js: "application/javascript",
-  pdf: 'application/pdf',
-  doc: 'application/msword',
-  html: "text/html",
-  css: "text/css",
-  png: "image/png",
-  jpg: "image/jpg",
-  gif: "image/gif",
-  ico: "image/x-icon",
-  svg: "image/svg+xml",
-  wav: 'audio/wav',
-  mp4: 'video/mp4',
-};
-
-const staticDir = __dirname + '/dist';
-
-const controller = {
-  '': async (data) => {
-    return {
-      status: 200,
-      headers: { 'Content-Type': 'text/html' },
-      content: await fs.promises.readFile(staticDir + '/index.html')
-    };
-  },
-  chat: async (data) => {
-    const { pathName, method, params } = data;
-
-    //Make sure the params are not empty
-    if (!params.username || !params.roomId) return { status: 302, headers: { 'Location': '/' } };
-
-    //Make sure user doesn't already exist
-    const userExists = Chat.usernameTaken(params.username, params.roomId);
-    if (userExists) return { status: 302, headers: { 'Location': '/' } };
-
-    //Return chat view
-    return {
-      status: 200,
-      headers: { 'Content-Type': 'text/html' },
-      content: await fs.promises.readFile(staticDir + '/chat.html')
-    };
-  },
-  generic: async (data) => {
-    const { pathName, method, params } = data;
-
-    const exists = await fs.promises.stat(join(staticDir, pathName)).then(() => true, () => false);
-
-    if (!exists) return {
-      status: 404,
-      headers: { 'Content-Type': 'text/html' },
-      content: await fs.promises.readFile(staticDir + '/404.html')
-    };
-
-    const extName = extname(pathName).substring(1).toLowerCase();
-
-    return {
-      status: 200,
-      headers: { 'Content-Type': mime[extName] || 'application/octet-stream' },
-      content: await fs.promises.readFile(join(staticDir, pathName))
-    };
-  }
-};
+const Chat = require('./utils/chat');
+const controller = require('./utils/controller');
 
 const server = http.createServer(async (req, res) => {
   //Make sure the request method is GET
@@ -83,15 +13,12 @@ const server = http.createServer(async (req, res) => {
   //Parse url also remove leading and trailing slashes
   const url = new URL(req.url, `http://${req.headers.host}`);
   const pathName = url.pathname.replace(/^\/+|\/+$/g, '');
+  const params = Object.fromEntries(url.searchParams);
 
   //Get the correct handler from the controller and call it
   const handler = controller[pathName] === undefined ? controller['generic'] : controller[pathName];
 
-  const { status, headers, content } = await handler({
-    pathName,
-    method: req.method,
-    params: Object.fromEntries(url.searchParams)
-  });
+  const { status, headers, content } = await handler({ pathName, params });
 
   //Send back the appropriate response
   res.writeHead(status, headers).end(content);

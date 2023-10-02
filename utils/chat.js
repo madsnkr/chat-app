@@ -21,5 +21,4 @@ class Chat {
   getUsers = roomId => this.#users.filter(user => user.room === roomId);
 }
 
-
 module.exports = new Chat();
