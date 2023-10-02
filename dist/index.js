@@ -6,6 +6,7 @@ const { username, roomId } = Object.fromEntries(new URLSearchParams(window.locat
 const form = document.getElementById('form');
 const messageInput = document.getElementById('message');
 const messageContainer = document.getElementById('message-container');
+const onlineUsers = document.getElementById('users');
 
 form.addEventListener('submit', (e) => {
   e.preventDefault();
@@ -25,7 +26,7 @@ messageInput.addEventListener('input', () => {
 });
 
 socket.emit('join', { username, roomId });
-
+socket.on('info', (info) => onlineUsers.textContent = `Online users: ${info}`);
 socket.on('roomMessage', (message) => {
   messageContainer.insertAdjacentHTML('beforeend', `<p class="text-center">${message}</p>`);
 });

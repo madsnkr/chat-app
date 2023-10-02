@@ -9,11 +9,12 @@
   </head>
   <body class="bg-zinc-100">
     <main class="h-screen">
-      <h1 class="text-center text-6xl py-10 text-indigo-900 shadow-zinc-900 font-bold">Welcome to chat room!</h1> 
-      <section class="bg-slate-200 w-11/12 h-80v max-w-6xl m-auto relative rounded-xl">
-
+      <div class="flex flex-col items-center justify-center py-4">
+        <h1 class="text-center text-2xl p-2 text-indigo-900 shadow-zinc-900 font-bold">Welcome to chat room!</h1> 
+        <h2 id="users" class="">Online Users: </h2>
+      </div>
+      <section class="bg-slate-200 w-11/12 h-80v m-auto relative rounded-xl">
         <div id="message-container" class="p-6 flex flex-col h-5/6 overflow-scroll"></div>
-
         <form id="form" action="" class="absolute left-0 bottom-0 w-full p-6">
           <div class='m-auto w-9/12 flex border-2 rounded-xl focus-within:border-sky-600'>
             <textarea id="message" class="shadow-md w-full break-all outline-none resize-none rounded-xl h-auto p-2" rows="1" cols="50" name="message" placeholder="Message..."></textarea>
@@ -21,7 +22,6 @@
           </div>
           <p id="typing"></p>
         </form>
-
       </section>
     </main>
     <script src="/socket.io/socket.io.js"></script>
